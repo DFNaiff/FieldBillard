@@ -18,4 +18,4 @@ import fieldbillard
 fieldbillard.run()
 ```
 
-![Alt text](docs/digs/examplegui.png?raw=true "GUI")
+![Alt text](docs/figs/examplegui.png?raw=true "GUI")
