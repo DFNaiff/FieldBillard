@@ -2,6 +2,9 @@ A simulator for something resembling billard balls, except for continuous field
 (think physics without magnetics, only electrostatics, and positive charges). 
 Built on PyTorch mostly.
 
+Mostly a toy project done from boredom.
+
+
 ## Installing
 On this folder:
 ```sh
@@ -14,3 +17,5 @@ To open the GUI
 import fieldbillard
 fieldbillard.run()
 ```
+
+![Screenshot](docs/digs/examplegui.png)

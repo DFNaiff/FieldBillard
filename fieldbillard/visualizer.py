@@ -27,7 +27,7 @@ class Visualizer(QMainWindow):
         
     def initializerUI(self):
         self.setGeometry(100, 100, 900, 600)
-        self.setWindowTitle("Visualizer")
+        self.setWindowTitle("Field Billard")
         self.setCentralWidget(CentralWidget(self))
         self.show()
         
