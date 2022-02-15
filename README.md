@@ -4,13 +4,13 @@ Built on PyTorch mostly.
 
 ## Installing
 On this folder:
-'''sh
+```sh
 pip install .
-'''
+```
 
 ## Usage
 To open the GUI
-'''sh
+```sh
 import fieldbillard
 fieldbillard.run()
-'''
+```
