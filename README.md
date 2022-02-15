@@ -1,5 +1,5 @@
 A simulator for something resembling billard balls, except for continuous field 
-(think physics without magnetics, only electrostatics, and positive charges). 
+(think physics without magnetism, only electrostatics, and positive charges). 
 Built on PyTorch mostly.
 
 Mostly a toy project done from boredom.
