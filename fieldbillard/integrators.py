@@ -23,6 +23,7 @@ def force_rhs(system, objects, coupling):
 
 
 def euler_step(dt, system, objects=None, coupling=1.0):
+    #Kind of forgetable. Just for completness
     system.zero_grad()
     dx, dy, dpx, dpy = hamiltonian_rhs(system, objects, coupling)
     with torch.no_grad():
@@ -40,8 +41,19 @@ def leapfrog_step(dt, system, objects=None, coupling=1.0):
         system.py += dpy*dt
         system.x += system.px*dt/system.mass
         system.y += system.py*dt/system.mass
+
         
-        
+def verlet_step(dt, system, objects=None, coupling=1.0):
+    raise NotImplementedError
+    system.zero_grad()
+    dx, dy, dpx, dpy = force_rhs(system, objects, coupling)
+    with torch.no_grad():
+        system.px += 0.5*dpx*dt
+        system.py += 0.5*dpy*dt
+        system.x += system.px*dt/system.mass
+        system.y += system.py*dt/system.mass
+
+
 def get_integrator(name):
     if name == 'leapfrog':
         return leapfrog_step

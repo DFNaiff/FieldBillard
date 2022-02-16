@@ -23,7 +23,7 @@ class Memory(object):
             yield item, self.alpha**i
 
         
-def create_system_from_design(design, mass, charge):
+def create_system_from_design(design, noise, mass, charge):
     if design == "4-Diamond":
         x = torch.tensor([0.7, 0.0, -0.7, 0.0])
         y = torch.tensor([0.0, 0.7, 0.0, -0.7])
@@ -54,6 +54,8 @@ def create_system_from_design(design, mass, charge):
         x, y = _sample_uniform_unit_circle(12, 0.8)
     elif design == "24-Random":
         x, y = _sample_uniform_unit_circle(24, 0.8)
+    x += noise*torch.randn_like(x)
+    y += noise*torch.randn_like(y)
     syst = system.NBodySystem(x, y, mass=mass, charge=charge)
     return syst
 

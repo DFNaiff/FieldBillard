@@ -9,12 +9,14 @@ def to_polar(x, y):
     theta = torch.atan2(y, x)
     return r, theta
 
+
 def trapquad(f, a, b, N, *args):
     x = torch.linspace(a, b, N+1) #(n,)
     dx = (b - a)/N
     y = f(x, *args) #(n, *argdims)
     value = 0.5*dx*torch.sum((y[1:, ...] + y[:-1, ...]), axis=0) #(*argdims)
     return value
+
 
 def circle_phi(r, N=100):
     def integrand(theta, r):
@@ -25,8 +27,10 @@ def circle_phi(r, N=100):
     integral = torch.nan_to_num(integral, 0.0)
     return integral
 
+
 def upper_mask(N):
     return torch.triu(torch.ones(N, N) * float('inf'))
+
 
 def diagonal_mask(N):
     return torch.diag(torch.ones(N) * float('inf'))

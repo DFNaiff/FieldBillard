@@ -3,9 +3,7 @@ import sys
 import matplotlib
 matplotlib.use('Qt5Agg')
 
-import time
-
-from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow,
+from PyQt5.QtWidgets import (QWidget, QMainWindow,
                              QHBoxLayout, QVBoxLayout,
                              QComboBox, QLabel, QPushButton,
                              QLineEdit, QCheckBox, QFileDialog,
@@ -64,6 +62,13 @@ class FormWidget(QWidget):
         self.point_combobox.addItems(point_designs)
         design_hbox.addWidget(point_title)
         design_hbox.addWidget(self.point_combobox)
+
+        noise_hbox = QHBoxLayout()
+        noise_title = QLabel("Noise")
+        self.noise_ledit = QLineEdit()
+        self.noise_ledit.setText("0.0")
+        noise_hbox.addWidget(noise_title)
+        noise_hbox.addWidget(self.noise_ledit)
         
         frame_hbox = QHBoxLayout()
         frame_designs = ["Circle", "Hash", "Square"]
@@ -108,13 +113,6 @@ class FormWidget(QWidget):
         self.timestep.setText("0.01")
         timestep_hbox.addWidget(timestep_title)
         timestep_hbox.addWidget(self.timestep)
-
-        stoptime_hbox = QHBoxLayout()
-        stoptime_title = QLabel("Stop time")
-        self.stoptime = QLineEdit()
-        self.stoptime.setText("10.0")
-        stoptime_hbox.addWidget(stoptime_title)
-        stoptime_hbox.addWidget(self.stoptime)
         
         memory_hbox = QHBoxLayout()
         self.memory_checkbox = QCheckBox("Memory")
@@ -133,13 +131,13 @@ class FormWidget(QWidget):
         snap_button.clicked.connect(self.snap)
         
         self.layout.addLayout(design_hbox)
+        self.layout.addLayout(noise_hbox)
         self.layout.addLayout(frame_hbox)
         self.layout.addLayout(mass_hbox)
         self.layout.addLayout(charge_hbox)
         self.layout.addLayout(frame_charge_hbox)
         self.layout.addLayout(integrator_hbox)
         self.layout.addLayout(timestep_hbox)
-        self.layout.addLayout(stoptime_hbox)
         self.layout.addLayout(memory_hbox)
         self.layout.addWidget(create_button)
         self.layout.addWidget(run_button)
@@ -161,9 +159,9 @@ class FormWidget(QWidget):
             charge = float(self.charge_ledit.text())
             frame_charge = float(self.frame_charge_ledit.text())
             mass = float(self.mass_ledit.text())
+            noise = float(self.noise_ledit.text())
             self.memory_size = int(self.memory_ledit.text())
             self.dt = float(self.timestep.text())
-            self.maxtime = float(self.stoptime.text())
             self.t = 0.0
         except ValueError:
             QMessageBox.critical(self, 
@@ -172,7 +170,7 @@ class FormWidget(QWidget):
                                  QMessageBox.Close,
                                  QMessageBox.Close)
         self.has_memory = self.memory_checkbox.isChecked()
-        self.system = visutils.create_system_from_design(point_design, mass, charge)
+        self.system = visutils.create_system_from_design(point_design, noise, mass, charge)
         visutils.set_system_frame(self.system, frame_design, frame_charge)
         visutils.set_integrator(self.system, integrator)
         if self.has_memory:
@@ -240,10 +238,3 @@ class PlotWidget(FigureCanvasQTAgg):
             self.draw()
         else: #Dumb way for doing this
             self.init_scatter_with_memory(memory)
-            
-    
-def run():
-    app = QApplication(sys.argv)
-    window = Visualizer()
-    sys.exit(app.exec_())
-    
