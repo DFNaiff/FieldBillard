@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import sys
-sys.path.insert(0, "../..")
-
 import torch
 
-import badnbody
+import fieldbillard
 
 
 R = 1.0
@@ -16,7 +13,10 @@ coupling = 1.0
 charge = 1.0
 mass = 1.0
 square_density = 10.0
+dt = 0.1
 
-system = badnbody.NBodySystem(x, y, mass=mass, charge=charge, coupling=coupling)
-square = badnbody.fields.Square(2*R, charge_density=square_density)
+system = fieldbillard.NBodySystem(x, y, mass=mass, charge=charge, coupling=coupling)
+square = fieldbillard.fields.Square(2*R, charge_density=square_density)
 system.add_field_object(square)
+for i in range(100):
+    system.step(dt)

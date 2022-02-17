@@ -3,7 +3,7 @@ import sys
 import matplotlib
 matplotlib.use('Qt5Agg')
 
-from PyQt5.QtWidgets import (QWidget, QMainWindow,
+from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow,
                              QHBoxLayout, QVBoxLayout,
                              QComboBox, QLabel, QPushButton,
                              QLineEdit, QCheckBox, QFileDialog,
@@ -99,8 +99,18 @@ class FormWidget(QWidget):
         frame_charge_hbox.addWidget(frame_charge_label)
         frame_charge_hbox.addWidget(self.frame_charge_ledit)
 
+        magnetics_hbox = QHBoxLayout()
+        self.magnetics_checkbox = QCheckBox("Magnetics")
+        magnetics_title = QLabel("Coupling")
+        self.magnetics_ledit = QLineEdit()
+        self.magnetics_ledit.setText("0.01")
+        magnetics_hbox.addWidget(self.magnetics_checkbox)
+        magnetics_hbox.addWidget(magnetics_title)
+        magnetics_hbox.addWidget(self.magnetics_ledit)
+
         integrator_hbox = QHBoxLayout()
-        integrator_designs = ["Leapfrog", "Euler"]
+        integrator_designs = ["SympleticEuler", "SympleticVerlet",
+                              "Euler", "Midpoint", "RungeKutta"]
         integrator_title = QLabel("Integrator:")
         self.integrator_combobox = QComboBox()
         self.integrator_combobox.addItems(integrator_designs)
@@ -108,11 +118,16 @@ class FormWidget(QWidget):
         integrator_hbox.addWidget(self.integrator_combobox)
         
         timestep_hbox = QHBoxLayout()
-        timestep_title = QLabel("Time step:")
+        timestep_title = QLabel("Step")
         self.timestep = QLineEdit()
         self.timestep.setText("0.01")
+        render_interval_text = QLabel("Render")
+        self.render_ledit = QLineEdit()
+        self.render_ledit.setText("1")
         timestep_hbox.addWidget(timestep_title)
         timestep_hbox.addWidget(self.timestep)
+        timestep_hbox.addWidget(render_interval_text)
+        timestep_hbox.addWidget(self.render_ledit)
         
         memory_hbox = QHBoxLayout()
         self.memory_checkbox = QCheckBox("Memory")
@@ -136,6 +151,7 @@ class FormWidget(QWidget):
         self.layout.addLayout(mass_hbox)
         self.layout.addLayout(charge_hbox)
         self.layout.addLayout(frame_charge_hbox)
+        self.layout.addLayout(magnetics_hbox)
         self.layout.addLayout(integrator_hbox)
         self.layout.addLayout(timestep_hbox)
         self.layout.addLayout(memory_hbox)
@@ -160,17 +176,32 @@ class FormWidget(QWidget):
             frame_charge = float(self.frame_charge_ledit.text())
             mass = float(self.mass_ledit.text())
             noise = float(self.noise_ledit.text())
+            magnetic_coupling = None if not self.magnetics_checkbox.isChecked()\
+                                else float(self.magnetics_ledit.text())
             self.memory_size = int(self.memory_ledit.text())
             self.dt = float(self.timestep.text())
+            self.nrender = int(self.render_ledit.text())
             self.t = 0.0
+            assert charge >= 0
+            assert frame_charge > 0
+            assert mass > 0
+            assert noise >= 0
+            assert (True if magnetic_coupling is None else magnetic_coupling >= 0)
+            assert self.memory_size >= 0
+            assert self.dt > 0.0
+            assert self.nrender >= 1
         except ValueError:
             QMessageBox.critical(self, 
-                                 "Could not complete calculation",
+                                 "Could not start system",
                                  "Could not set parameters. Check the form",
                                  QMessageBox.Close,
                                  QMessageBox.Close)
         self.has_memory = self.memory_checkbox.isChecked()
-        self.system = visutils.create_system_from_design(point_design, noise, mass, charge)
+        self.system = visutils.create_system_from_design(point_design,
+                                                         noise,
+                                                         mass,
+                                                         charge,
+                                                         magnetic_coupling)
         visutils.set_system_frame(self.system, frame_design, frame_charge)
         visutils.set_integrator(self.system, integrator)
         if self.has_memory:
@@ -183,7 +214,16 @@ class FormWidget(QWidget):
         self.timer.start()
 
     def update(self):
-        self.system.step(self.dt)
+        try:
+            for i in range(self.nrender):
+                self.system.step(self.dt)
+        except visutils.integrators.NonValidIntegratorError:
+            QMessageBox.critical(self, 
+                                 "Could not run system",
+                                 "Could not run system. Probably non-compatible integrator",
+                                 QMessageBox.Close,
+                                 QMessageBox.Close)
+            self.timer.stop()
         if self.has_memory:
             self.memory.append(self.system.points.xy.detach().numpy())
         self.parent.plot.update_scatter(self.system, None)
@@ -238,3 +278,9 @@ class PlotWidget(FigureCanvasQTAgg):
             self.draw()
         else: #Dumb way for doing this
             self.init_scatter_with_memory(memory)
+            
+            
+def run():
+    app = QApplication(sys.argv)
+    window = Visualizer()
+    sys.exit(app.exec_())

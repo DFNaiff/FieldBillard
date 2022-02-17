@@ -6,6 +6,7 @@ import torch
 
 from . import system
 from . import fields
+from . import integrators
 
 
 class Memory(object):
@@ -23,7 +24,7 @@ class Memory(object):
             yield item, self.alpha**i
 
         
-def create_system_from_design(design, noise, mass, charge):
+def create_system_from_design(design, noise, mass, charge, magnetic_coupling):
     if design == "4-Diamond":
         x = torch.tensor([0.7, 0.0, -0.7, 0.0])
         y = torch.tensor([0.0, 0.7, 0.0, -0.7])
@@ -56,7 +57,8 @@ def create_system_from_design(design, noise, mass, charge):
         x, y = _sample_uniform_unit_circle(24, 0.8)
     x += noise*torch.randn_like(x)
     y += noise*torch.randn_like(y)
-    syst = system.NBodySystem(x, y, mass=mass, charge=charge)
+    syst = system.NBodySystem(x, y, mass=mass, charge=charge,
+                              magnetic_coupling=magnetic_coupling)
     return syst
 
 

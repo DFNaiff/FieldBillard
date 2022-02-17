@@ -26,9 +26,9 @@ class MovingPoints(torch.nn.Module):
     def internal_energy(self, coupling=1.0):
         dists = torch.cdist(self.xy, self.xy) + utils.diagonal_mask(self.dim)
         energies = coupling*self.charge**2/dists
-        energy = torch.sum(energies)
+        energy = torch.sum(energies)        
         return energy
-        
+
     def external_energy(self, objects=None, coupling=1.0):
         if objects is None:
             return 0.0
@@ -39,11 +39,35 @@ class MovingPoints(torch.nn.Module):
     def potential_energy(self, objects=1.0, coupling=1.0):
         return self.internal_energy(coupling) + self.external_energy(objects, coupling)
     
-    def hamiltonian(self, objects=None, coupling=1.0):
-        ke = self.kinetic_energy() 
-        pe = self.potential_energy(objects, coupling)
+    def hamiltonian(self, objects=None, coupling=1.0, magnetic_coupling=None):
+        if isinstance(magnetic_coupling, float):
+            return self.magnetic_hamiltonian(objects, coupling, magnetic_coupling)
+        else:
+            ke = self.kinetic_energy() 
+            pe = self.potential_energy(objects, coupling)
         return ke + pe
+
+    def magnetic_hamiltonian(self, objects=None, coupling=1.0, magnetic_coupling=1.0):
+        ie, imx, imy = self.internal_energies_and_momentum(coupling, magnetic_coupling)
+        #e, mx, my = ie + ee, imx + emx, imy + emy
+        mx, my = imx, imy
+        magnetic_kinetic_energy = 1/(2*self.mass)*\
+                                  torch.sum(((self.px-mx)**2 + (self.py-my)**2))
+        internal_potential_energy = sum(ie)
+        external_potential_energy = self.external_energy(objects, coupling)
+        magnetic_potential_energy = internal_potential_energy + external_potential_energy
+        hamilt = magnetic_kinetic_energy + magnetic_potential_energy
+        return hamilt
     
+    def internal_energies_and_momentum(self, coupling, magnetic_coupling):
+        dists = torch.cdist(self.xy, self.xy) + utils.diagonal_mask(self.dim)
+        energies = torch.sum(coupling*self.charge**2/dists, axis=0)
+        momentum_base = magnetic_coupling*self.charge**2/dists
+        momentum_x = torch.sum(momentum_base*self.vx, axis=0)
+        momentum_y = torch.sum(momentum_base*self.vy, axis=0)
+        return energies, momentum_x, momentum_y
+        
+        
     @property
     def xy(self):
         return torch.stack([self.x, self.y], axis=-1)
@@ -54,11 +78,11 @@ class MovingPoints(torch.nn.Module):
     
     @property
     def vx(self):
-        return self.x/self.px
+        return self.px/self.mass
     
     @property
     def vy(self):
-        return self.y/self.py
+        return self.py/self.mass
     
     @property
     def vxy(self):
