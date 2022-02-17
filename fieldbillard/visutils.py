@@ -24,10 +24,10 @@ class Memory(object):
             yield item, self.alpha**i
 
         
-def create_system_from_design(design, noise, mass, charge, magnetic_coupling):
+def create_system_from_design(design, noise, mass, charge, darwin_coupling):
     if design == "4-Diamond":
-        x = torch.tensor([0.7, 0.0, -0.7, 0.0])
-        y = torch.tensor([0.0, 0.7, 0.0, -0.7])
+        x = torch.tensor([0.8, 0.0, -0.8, 0.0])
+        y = torch.tensor([0.0, 0.8, 0.0, -0.8])
     elif design == "4-Square":
         x = torch.tensor([0.7, -0.7, -0.7, 0.7])
         y = torch.tensor([0.7, 0.7, -0.7, -0.7])
@@ -44,21 +44,29 @@ def create_system_from_design(design, noise, mass, charge, magnetic_coupling):
         x = 0.8*torch.tensor([0.0, math.cos(math.pi/6), -math.cos(math.pi/6)])
         y = 0.8*torch.tensor([1.0, -math.sin(math.pi/6), -math.sin(math.pi/6)])
     elif design == "3-Random":
-        x, y = _sample_uniform_unit_circle(3, 0.8)
+        x, y = _sample_uniform_unit_circle(3, 1.0)
     elif design == "4-Random":
-        x, y = _sample_uniform_unit_circle(4, 0.8)
+        x, y = _sample_uniform_unit_circle(4, 1.0)
     elif design == "5-Random":
-        x, y = _sample_uniform_unit_circle(5, 0.8)
+        x, y = _sample_uniform_unit_circle(5, 1.0)
+    elif design == "5-Circle":
+        x, y = _make_equilateral_designs(0.8, 5)
     elif design == "6-Random":
-        x, y = _sample_uniform_unit_circle(6, 0.8)
+        x, y = _sample_uniform_unit_circle(6, 1.0)
+    elif design == "6-Circle":
+        x, y = _make_equilateral_designs(0.8, 6)
     elif design == "12-Random":
-        x, y = _sample_uniform_unit_circle(12, 0.8)
+        x, y = _sample_uniform_unit_circle(12, 1.0)
+    elif design == "12-Circle":
+        x, y = _make_equilateral_designs(0.8, 12)
     elif design == "24-Random":
-        x, y = _sample_uniform_unit_circle(24, 0.8)
+        x, y = _sample_uniform_unit_circle(24, 1.0)
+    elif design == "24-Circle":
+        x, y = _make_equilateral_designs(0.8, 24)
     x += noise*torch.randn_like(x)
     y += noise*torch.randn_like(y)
     syst = system.NBodySystem(x, y, mass=mass, charge=charge,
-                              magnetic_coupling=magnetic_coupling)
+                              darwin_coupling=darwin_coupling)
     return syst
 
 
@@ -79,6 +87,13 @@ def set_integrator(syst, integrator):
 def _sample_uniform_unit_circle(N, rmax=1.0):
     r = torch.sqrt(torch.rand(N))*rmax
     theta = torch.rand(N)*2*math.pi
+    x = r*torch.cos(theta)
+    y = r*torch.sin(theta)
+    return x, y
+
+
+def _make_equilateral_designs(r, N):
+    theta = torch.linspace(0, 2*math.pi, N+1)[:-1] + math.pi/2
     x = r*torch.cos(theta)
     y = r*torch.sin(theta)
     return x, y

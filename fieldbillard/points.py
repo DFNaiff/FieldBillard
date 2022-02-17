@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+import warnings
 
 import torch
 
@@ -8,6 +9,24 @@ from . import utils
 
 class MovingPoints(torch.nn.Module):
     def __init__(self, x, y, px=None, py=None, mass=1.0, charge=1.0):
+        """
+        Parameters
+        ----------
+        x : torch.Tensor
+            position x-coordinate.
+        y : torch.Tensor
+            position y-coordinate.
+        px : torch.Tensor or None
+            Generalized momenta x-coordinate. Defaults to zero if None.
+            The default is None.
+        px : torch.Tensor or None
+            Generalized momenta y-coordinate. Defaults to zero if None.
+            The default is None.
+        mass : float
+            Mass of particles. The default is 1.0.
+        charge : float
+            Charge of particles. The default is 1.0.
+        """
         super().__init__()
         x = x #(n, )
         y = y #(n, )
@@ -39,30 +58,31 @@ class MovingPoints(torch.nn.Module):
     def potential_energy(self, objects=1.0, coupling=1.0):
         return self.internal_energy(coupling) + self.external_energy(objects, coupling)
     
-    def hamiltonian(self, objects=None, coupling=1.0, magnetic_coupling=None):
-        if isinstance(magnetic_coupling, float):
-            return self.magnetic_hamiltonian(objects, coupling, magnetic_coupling)
+    def hamiltonian(self, objects=None, coupling=1.0, darwin_coupling=None):
+        if isinstance(darwin_coupling, float):
+            return self.darwin_hamiltonian(objects, coupling, darwin_coupling)
         else:
             ke = self.kinetic_energy() 
             pe = self.potential_energy(objects, coupling)
         return ke + pe
 
-    def magnetic_hamiltonian(self, objects=None, coupling=1.0, magnetic_coupling=1.0):
-        ie, imx, imy = self.internal_energies_and_momentum(coupling, magnetic_coupling)
+    def darwin_hamiltonian(self, objects=None, coupling=1.0, darwin_coupling=1.0):
+        warnings.warn("This is deeply wrong and has nothing to do with darwin lagrangian")
+        ie, imx, imy = self.internal_energies_and_momentum(coupling, darwin_coupling)
         #e, mx, my = ie + ee, imx + emx, imy + emy
         mx, my = imx, imy
-        magnetic_kinetic_energy = 1/(2*self.mass)*\
+        darwin_kinetic_energy = 1/(2*self.mass)*\
                                   torch.sum(((self.px-mx)**2 + (self.py-my)**2))
         internal_potential_energy = sum(ie)
         external_potential_energy = self.external_energy(objects, coupling)
-        magnetic_potential_energy = internal_potential_energy + external_potential_energy
-        hamilt = magnetic_kinetic_energy + magnetic_potential_energy
+        darwin_potential_energy = internal_potential_energy + external_potential_energy
+        hamilt = darwin_kinetic_energy + darwin_potential_energy
         return hamilt
     
-    def internal_energies_and_momentum(self, coupling, magnetic_coupling):
+    def internal_energies_and_momentum(self, coupling, darwin_coupling):
         dists = torch.cdist(self.xy, self.xy) + utils.diagonal_mask(self.dim)
         energies = torch.sum(coupling*self.charge**2/dists, axis=0)
-        momentum_base = magnetic_coupling*self.charge**2/dists
+        momentum_base = darwin_coupling*self.charge**2/dists
         momentum_x = torch.sum(momentum_base*self.vx, axis=0)
         momentum_y = torch.sum(momentum_base*self.vy, axis=0)
         return energies, momentum_x, momentum_y
@@ -77,15 +97,15 @@ class MovingPoints(torch.nn.Module):
         return torch.stack([self.px, self.py], axis=-1)
     
     @property
-    def vx(self):
+    def vx(self): #Will not be correct in darwin case
         return self.px/self.mass
     
     @property
-    def vy(self):
+    def vy(self): #Will not be correct in darwin case
         return self.py/self.mass
     
     @property
-    def vxy(self):
+    def vxy(self): #Will not be correct in darwin case
         return torch.stack([self.vx, self.vy], axis=-1)
     
     @property

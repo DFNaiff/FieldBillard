@@ -14,9 +14,19 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 import numpy as np
+import torch
 
 from . import visutils
 
+
+POINTS_DESIGNS = \
+    ["3-Isosceles", "3-Equilateral", "3-Isosceles-B", "3-Random",
+     "4-Cross", "4-Diamond","4-Square", "4-Random",
+     "5-Circle", "5-Random", "6-Circle", "6-Random",
+     "12-Circle", "12-Random", "24-Circle", "24-Random"]
+FRAMES_DESIGNS = \
+    ["Circle", "Hash", "Square"]
+    
 
 class Visualizer(QMainWindow):
     def __init__(self):
@@ -54,9 +64,7 @@ class FormWidget(QWidget):
         self.layout = QVBoxLayout()
 
         design_hbox = QHBoxLayout()        
-        point_designs = ["3-Isosceles", "3-Equilateral", "3-Isosceles-B", "3-Random",
-                         "4-Cross", "4-Diamond","4-Square", "4-Random",
-                         "5-Random", "6-Random", "12-Random", "24-Random"]
+        point_designs = POINTS_DESIGNS
         point_title = QLabel("Points:")
         self.point_combobox = QComboBox()
         self.point_combobox.addItems(point_designs)
@@ -71,7 +79,7 @@ class FormWidget(QWidget):
         noise_hbox.addWidget(self.noise_ledit)
         
         frame_hbox = QHBoxLayout()
-        frame_designs = ["Circle", "Hash", "Square"]
+        frame_designs = FRAMES_DESIGNS
         frame_title = QLabel("Frame:")
         self.frame_combobox = QComboBox()
         self.frame_combobox.addItems(frame_designs)
@@ -99,14 +107,16 @@ class FormWidget(QWidget):
         frame_charge_hbox.addWidget(frame_charge_label)
         frame_charge_hbox.addWidget(self.frame_charge_ledit)
 
-        magnetics_hbox = QHBoxLayout()
-        self.magnetics_checkbox = QCheckBox("Magnetics")
-        magnetics_title = QLabel("Coupling")
-        self.magnetics_ledit = QLineEdit()
-        self.magnetics_ledit.setText("0.01")
-        magnetics_hbox.addWidget(self.magnetics_checkbox)
-        magnetics_hbox.addWidget(magnetics_title)
-        magnetics_hbox.addWidget(self.magnetics_ledit)
+        darwin_hbox = QHBoxLayout()
+        self.darwin_checkbox = QCheckBox("Darwin")
+        self.darwin_checkbox.setEnabled(False)
+        darwin_title = QLabel("Coupling")
+        self.darwin_ledit = QLineEdit()
+        self.darwin_ledit.setText("0.01")
+        self.darwin_checkbox.setEnabled(False)
+        darwin_hbox.addWidget(self.darwin_checkbox)
+        darwin_hbox.addWidget(darwin_title)
+        darwin_hbox.addWidget(self.darwin_ledit)
 
         integrator_hbox = QHBoxLayout()
         integrator_designs = ["SympleticEuler", "SympleticVerlet",
@@ -114,16 +124,17 @@ class FormWidget(QWidget):
         integrator_title = QLabel("Integrator:")
         self.integrator_combobox = QComboBox()
         self.integrator_combobox.addItems(integrator_designs)
+        self.integrator_combobox.setCurrentIndex(1)
         integrator_hbox.addWidget(integrator_title)
         integrator_hbox.addWidget(self.integrator_combobox)
         
         timestep_hbox = QHBoxLayout()
         timestep_title = QLabel("Step")
         self.timestep = QLineEdit()
-        self.timestep.setText("0.01")
+        self.timestep.setText("0.001")
         render_interval_text = QLabel("Render")
         self.render_ledit = QLineEdit()
-        self.render_ledit.setText("1")
+        self.render_ledit.setText("10")
         timestep_hbox.addWidget(timestep_title)
         timestep_hbox.addWidget(self.timestep)
         timestep_hbox.addWidget(render_interval_text)
@@ -151,7 +162,7 @@ class FormWidget(QWidget):
         self.layout.addLayout(mass_hbox)
         self.layout.addLayout(charge_hbox)
         self.layout.addLayout(frame_charge_hbox)
-        self.layout.addLayout(magnetics_hbox)
+        self.layout.addLayout(darwin_hbox)
         self.layout.addLayout(integrator_hbox)
         self.layout.addLayout(timestep_hbox)
         self.layout.addLayout(memory_hbox)
@@ -176,17 +187,16 @@ class FormWidget(QWidget):
             frame_charge = float(self.frame_charge_ledit.text())
             mass = float(self.mass_ledit.text())
             noise = float(self.noise_ledit.text())
-            magnetic_coupling = None if not self.magnetics_checkbox.isChecked()\
-                                else float(self.magnetics_ledit.text())
+            darwin_coupling = None if not self.darwin_checkbox.isChecked()\
+                                else float(self.darwin_ledit.text())
             self.memory_size = int(self.memory_ledit.text())
             self.dt = float(self.timestep.text())
             self.nrender = int(self.render_ledit.text())
-            self.t = 0.0
             assert charge >= 0
             assert frame_charge > 0
             assert mass > 0
             assert noise >= 0
-            assert (True if magnetic_coupling is None else magnetic_coupling >= 0)
+            assert (True if darwin_coupling is None else darwin_coupling >= 0)
             assert self.memory_size >= 0
             assert self.dt > 0.0
             assert self.nrender >= 1
@@ -201,7 +211,7 @@ class FormWidget(QWidget):
                                                          noise,
                                                          mass,
                                                          charge,
-                                                         magnetic_coupling)
+                                                         darwin_coupling)
         visutils.set_system_frame(self.system, frame_design, frame_charge)
         visutils.set_integrator(self.system, integrator)
         if self.has_memory:
@@ -214,20 +224,26 @@ class FormWidget(QWidget):
         self.timer.start()
 
     def update(self):
-        try:
-            for i in range(self.nrender):
+        for i in range(self.nrender):
+            try:
                 self.system.step(self.dt)
-        except visutils.integrators.NonValidIntegratorError:
-            QMessageBox.critical(self, 
-                                 "Could not run system",
-                                 "Could not run system. Probably non-compatible integrator",
-                                 QMessageBox.Close,
-                                 QMessageBox.Close)
-            self.timer.stop()
+            except visutils.integrators.NonValidIntegratorError:
+                QMessageBox.critical(self, 
+                                     "Could not run system",
+                                     "Non-compatible integrator",
+                                     QMessageBox.Close,
+                                     QMessageBox.Close)
+                self.timer.stop()
         if self.has_memory:
             self.memory.append(self.system.points.xy.detach().numpy())
         self.parent.plot.update_scatter(self.system, None)
-        self.t += self.dt
+        fartest = torch.max(torch.abs(self.system.points.xy.detach())).item()
+        if fartest > 2.0:
+            QMessageBox.critical(self, "Stopping simulation",
+                                 "There are particles out of bounds. "\
+                                 "Try a lower time step or a sympletic integrator.",
+                                 QMessageBox.Close, QMessageBox.Close)
+            self.timer.stop()
 
     def snap(self):
         self.timer.stop()
