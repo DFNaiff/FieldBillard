@@ -26,7 +26,9 @@ POINTS_DESIGNS = \
      "12-Circle", "12-Random", "24-Circle", "24-Random"]
 FRAMES_DESIGNS = \
     ["Circle", "Hash", "Square"]
-    
+INTEGRATORS = \
+    ["SympleticEuler", "SympleticVerlet",
+     "Tao20", "Tao80", "Tao320"] 
 
 class Visualizer(QMainWindow):
     def __init__(self):
@@ -109,18 +111,15 @@ class FormWidget(QWidget):
 
         darwin_hbox = QHBoxLayout()
         self.darwin_checkbox = QCheckBox("Darwin")
-        self.darwin_checkbox.setEnabled(False)
         darwin_title = QLabel("Coupling")
         self.darwin_ledit = QLineEdit()
         self.darwin_ledit.setText("0.01")
-        self.darwin_checkbox.setEnabled(False)
         darwin_hbox.addWidget(self.darwin_checkbox)
         darwin_hbox.addWidget(darwin_title)
         darwin_hbox.addWidget(self.darwin_ledit)
 
         integrator_hbox = QHBoxLayout()
-        integrator_designs = ["SympleticEuler", "SympleticVerlet",
-                              "Euler", "Midpoint", "RungeKutta"]
+        integrator_designs = INTEGRATORS
         integrator_title = QLabel("Integrator:")
         self.integrator_combobox = QComboBox()
         self.integrator_combobox.addItems(integrator_designs)
@@ -234,6 +233,15 @@ class FormWidget(QWidget):
                                      QMessageBox.Close,
                                      QMessageBox.Close)
                 self.timer.stop()
+                break
+            # except Exception:
+            #     QMessageBox.critical(self, 
+            #                          "Could not run system",
+            #                          "Some error. Let's debug",
+            #                          QMessageBox.Close,
+            #                          QMessageBox.Close)
+            #     self.timer.stop()
+            #     break
         if self.has_memory:
             self.memory.append(self.system.points.xy.detach().numpy())
         self.parent.plot.update_scatter(self.system, None)

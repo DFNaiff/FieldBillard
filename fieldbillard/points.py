@@ -38,75 +38,94 @@ class MovingPoints(torch.nn.Module):
         self.charge = charge #(n, )
         self.mass = mass #(n, )
         
-    def kinetic_energy(self):
-        energy = 1/(2*self.mass)*torch.sum((self.px**2 + self.py**2))
+    def kinetic_energy(self, pxy):
+        energy = 1/(2*self.mass)*torch.sum(pxy**2)
         return energy
     
-    def internal_energy(self, coupling=1.0):
-        dists = torch.cdist(self.xy, self.xy) + utils.diagonal_mask(self.dim)
+    def internal_energy(self, xy, coupling=1.0):
+        dists = torch.cdist(xy, xy) + utils.diagonal_mask(self.dim)
         energies = coupling*self.charge**2/dists
         energy = torch.sum(energies)        
         return energy
 
-    def external_energy(self, objects=None, coupling=1.0):
+    def external_energy(self, xy, objects=None, coupling=1.0):
         if objects is None:
             return 0.0
-        energies = torch.stack([obj.potential(self.x, self.y, self.charge, coupling) for obj in objects])
+        x, y = xy[..., 0], xy[..., 1]
+        energies = torch.stack([obj.potential(x, y, self.charge, coupling) for obj in objects])
         energy = torch.sum(energies)
         return energy
     
-    def potential_energy(self, objects=1.0, coupling=1.0):
-        return self.internal_energy(coupling) + self.external_energy(objects, coupling)
+    def potential_energy_(self, xy, objects=1.0, coupling=1.0):
+        return self.internal_energy(xy, coupling) + self.external_energy(xy, objects, coupling)
     
-    def hamiltonian(self, objects=None, coupling=1.0, darwin_coupling=None):
+    def potential_energy(self, objects=1.0, coupling=1.0, dummy_q=False, dummy_p=False):
+        xy = self.xy if not dummy_q else self.xy_dummy
+        return self.potential_energy_(xy, objects, coupling)
+        
+    def hamiltonian(self, objects=None, coupling=1.0, darwin_coupling=None,
+                    dummy_q=False, dummy_p=False):
+        xy = self.xy if not dummy_q else self.xy_dummy
+        pxy = self.pxy if not dummy_p else self.pxy_dummy
         if isinstance(darwin_coupling, float):
-            return self.darwin_hamiltonian(objects, coupling, darwin_coupling)
+            return self.darwin_hamiltonian(xy, pxy, objects, coupling, darwin_coupling)
         else:
-            ke = self.kinetic_energy() 
-            pe = self.potential_energy(objects, coupling)
+            ke = self.kinetic_energy(pxy) 
+            pe = self.potential_energy_(xy, objects, coupling)
         return ke + pe
 
-    def darwin_hamiltonian(self, objects=None, coupling=1.0, darwin_coupling=1.0):
-        warnings.warn("This is deeply wrong and has nothing to do with darwin lagrangian")
-        ie, imx, imy = self.internal_energies_and_momentum(coupling, darwin_coupling)
-        #e, mx, my = ie + ee, imx + emx, imy + emy
-        mx, my = imx, imy
-        darwin_kinetic_energy = 1/(2*self.mass)*\
-                                  torch.sum(((self.px-mx)**2 + (self.py-my)**2))
-        internal_potential_energy = sum(ie)
-        external_potential_energy = self.external_energy(objects, coupling)
-        darwin_potential_energy = internal_potential_energy + external_potential_energy
-        hamilt = darwin_kinetic_energy + darwin_potential_energy
+    def darwin_hamiltonian(self, xy, pxy, objects=None, coupling=1.0, darwin_coupling=1.0):
+        internal_energy = self.darwin_energies(xy, pxy, coupling, darwin_coupling)
+        external_energy = self.external_energy(xy, objects, coupling)
+        hamilt = internal_energy + external_energy
         return hamilt
     
-    def internal_energies_and_momentum(self, coupling, darwin_coupling):
-        dists = torch.cdist(self.xy, self.xy) + utils.diagonal_mask(self.dim)
-        energies = torch.sum(coupling*self.charge**2/dists, axis=0)
-        momentum_base = darwin_coupling*self.charge**2/dists
-        momentum_x = torch.sum(momentum_base*self.vx, axis=0)
-        momentum_y = torch.sum(momentum_base*self.vy, axis=0)
-        return energies, momentum_x, momentum_y
+    def darwin_energies(self, xy, pxy, coupling, darwin_coupling):
+        dists = torch.cdist(xy, xy) + utils.diagonal_mask(self.dim)
+        coulomb_energy = torch.sum(coupling*self.charge**2/dists)
+        darwin_base = darwin_coupling*self.charge**2/(2*dists*self.mass**2)
+        inner_products = torch.sum(pxy[None, :, :]*pxy[:, None, :], dim=-1)
+        projections = torch.sum((xy[:, None, :] - xy[None, :, :])*pxy, axis=-1)/(dists)
+        inner_prod_term = darwin_base*torch.sum((inner_products))
+        projections_term = darwin_base*torch.sum(projections*projections.T)
+        darwin_energy = torch.sum(inner_prod_term + projections_term)
+        kinetic_energy = self.kinetic_energy(pxy)
+        rke_base = darwin_coupling/(8*self.mass**3)*darwin_coupling
+        relativistic_kinetic_energy = rke_base*torch.sum(torch.diag(inner_products))
+        energy = coulomb_energy + darwin_energy + kinetic_energy + relativistic_kinetic_energy
+        return energy
         
+    def make_dummy_parameters(self):
+        self.xy_dummy = torch.nn.Parameter(self.xy.detach())
+        self.pxy_dummy = torch.nn.Parameter(self.pxy.detach())
         
     @property
-    def xy(self):
-        return torch.stack([self.x, self.y], axis=-1)
+    def x(self):
+        return self.xy[..., 0]
     
     @property
-    def pxy(self):
-        return torch.stack([self.px, self.py], axis=-1)
+    def y(self):
+        return self.xy[..., 1]
     
     @property
-    def vx(self): #Will not be correct in darwin case
-        return self.px/self.mass
+    def px(self):
+        return self.pxy[..., 0]
     
     @property
-    def vy(self): #Will not be correct in darwin case
-        return self.py/self.mass
+    def py(self):
+        return self.pxy[..., 1]
+
+    # @property
+    # def vx(self): #Will not be correct in darwin case
+    #     return self.px/self.mass
     
-    @property
-    def vxy(self): #Will not be correct in darwin case
-        return torch.stack([self.vx, self.vy], axis=-1)
+    # @property
+    # def vy(self): #Will not be correct in darwin case
+    #     return self.py/self.mass
+    
+    # @property
+    # def vxy(self): #Will not be correct in darwin case
+    #     return torch.stack([self.vx, self.vy], axis=-1)
     
     @property
     def dim(self):
@@ -117,8 +136,10 @@ class MovingPoints(torch.nn.Module):
         assert (self.x.shape[-1], self.y.shape[-1], self.px.shape[-1], self.py.shape[-1]) == ((self.dim,)*4)
         
     def _register_positions_as_parameters(self, x, y, px, py):
-        self.x = torch.nn.Parameter(x)
-        self.y = torch.nn.Parameter(y)
-        self.px = torch.nn.Parameter(px)
-        self.py = torch.nn.Parameter(py)
+        xy = torch.stack([x, y], dim=-1)
+        pxy = torch.stack([px, py], dim=-1)
+        self.xy = torch.nn.Parameter(xy)
+        self.pxy = torch.nn.Parameter(pxy)
+        self.xy_dummy = None
+        self.pxy_dummy = None
         return

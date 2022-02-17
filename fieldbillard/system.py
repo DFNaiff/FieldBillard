@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from . import fields
 from . import points
 from . import integrators
@@ -7,7 +6,7 @@ from . import integrators
 
 class NBodySystem(object):
     def __init__(self, x, y, px=None, py=None, mass=1.0, charge=1.0,
-                 integrator='euler', coupling=1.0,
+                 integrator='sympleticverlet', coupling=1.0,
                  darwin_coupling=None):
         self.points = points.MovingPoints(x, y, px, py, mass, charge)
         self.objects = []
@@ -25,3 +24,5 @@ class NBodySystem(object):
         
     def set_integrator(self, integrator):
         self.integrator = integrators.get_integrator(integrator)
+        if integrator[:3] == "tao":
+            self.points.make_dummy_parameters()
