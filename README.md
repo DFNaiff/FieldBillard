@@ -1,5 +1,6 @@
-A simulator for something resembling billard balls, except for continuous field 
-(think physics without magnetism, only electrostatics, and positive charges). 
+A simulator of 2-D positive charges interacting with each other and 
+a bounding electric field. Can consider either quasi-electrostatic approximation 
+or quasi-electromagnetostatics approximation (through the Darwin Hamiltonian).
 Built on PyTorch mostly.
 
 Mostly a toy project done from boredom.
