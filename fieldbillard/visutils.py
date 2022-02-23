@@ -50,26 +50,6 @@ def create_system_from_design(design, noise, mass, charge, pradius, npoints, dar
         x, y = _sample_uniform_unit_square(npoints, pradius)
     elif design == "N-Equilateral":
         x, y = _make_equilateral_designs(pradius, npoints)
-    # elif design == "3-Random":
-    #     x, y = _sample_uniform_unit_circle(3, 1.0)
-    # elif design == "4-Random":
-    #     x, y = _sample_uniform_unit_circle(4, 1.0)
-    # elif design == "5-Random":
-    #     x, y = _sample_uniform_unit_circle(5, 1.0)
-    # elif design == "5-Circle":
-    #     x, y = _make_equilateral_designs(0.8, 5)
-    # elif design == "6-Random":
-    #     x, y = _sample_uniform_unit_circle(6, 1.0)
-    # elif design == "6-Circle":
-    #     x, y = _make_equilateral_designs(0.8, 6)
-    # elif design == "12-Random":
-    #     x, y = _sample_uniform_unit_circle(12, 1.0)
-    # elif design == "12-Circle":
-    #     x, y = _make_equilateral_designs(0.8, 12)
-    # elif design == "24-Random":
-    #     x, y = _sample_uniform_unit_circle(24, 1.0)
-    # elif design == "24-Circle":
-    #     x, y = _make_equilateral_designs(0.8, 24)
     x += noise*torch.randn_like(x)
     y += noise*torch.randn_like(y)
     syst = system.NBodySystem(x, y, mass=mass, charge=charge,
