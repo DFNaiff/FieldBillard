@@ -3,6 +3,7 @@ import math
 import collections
 
 import torch
+import numpy as np
 
 from . import system
 from . import fields
@@ -73,12 +74,52 @@ def create_system_from_design(design, noise, mass, charge, darwin_coupling):
 def set_system_frame(syst, design, charge_density):
     if design == "Circle":
         obj = fields.Ring(1.0, charge_density=charge_density)
+        syst.add_field_object(obj)
     elif design == "Square":
         obj = fields.Square(2.0, charge_density=charge_density)
+        syst.add_field_object(obj)
     elif design == "Hash":
         obj = fields.Hash(2.0, charge_density=charge_density)
-    syst.add_field_object(obj)
-    
+        syst.add_field_object(obj)
+    elif design == "Periodic":
+        syst.points.lx = 2.0
+        syst.points.ly = 2.0
+    elif design == "XPeriodic":
+        syst.points.lx = 2.0
+        obj1 = fields.HorizontalLine(-1.0, charge_density=charge_density)
+        obj2 = fields.HorizontalLine(1.0, charge_density=charge_density)
+        syst.add_field_object(obj1)
+        syst.add_field_object(obj2)
+    elif design == "YPeriodic":
+        syst.points.ly = 2.0
+        obj1 = fields.VerticalLine(-1.0, charge_density=charge_density)
+        obj2 = fields.VerticalLine(1.0, charge_density=charge_density)
+        syst.add_field_object(obj1)
+        syst.add_field_object(obj2)
+    else:
+        raise ValueError
+
+def set_fixed_points(syst, design, N, charge):
+    if design == "None": #Edge case
+        return np.array([])[..., None], np.array([])[..., None]
+    else:
+        if design == "RandomCircle":
+            x, y = _sample_uniform_unit_circle(N)
+        elif design == "RandomSquare":
+            x = torch.rand(N)*2 - 1
+            y = torch.rand(N)*2 - 1
+        else:
+            raise ValueError
+        if syst.points.periodic:
+            obj = fields.PeriodicFixedPoints(x, y, charge,
+                                             syst.points.lx,
+                                             syst.points.ly,
+                                             syst.points.cx,
+                                             syst.points.cy)
+        else:
+            obj = fields.FixedPoints(x, y, charge)
+        syst.add_field_object(obj)
+    return np.array(x), np.array(y)
 
 def set_integrator(syst, integrator):
     syst.set_integrator(integrator.lower())

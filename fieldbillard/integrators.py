@@ -1,13 +1,166 @@
 # -*- coding: utf-8 -*-
+from typing import Optional, List, Callable
 import math
 import functools
 
 import torch
 
+from . import points
+from . import fields
+
 
 class NonValidIntegratorError(Exception):
     pass
 
+
+def sympletic_euler_step(dt: float, system: points.MovingPoints,
+                         objects: Optional[List[fields.FieldObject]] = None,
+                         coupling: float = 1.0,
+                         darwin_coupling: Optional[float] = None):
+    """
+
+    Parameters
+    ----------
+    dt : float
+        Step size.
+    system : points.MovingPoints
+        Moving points system to integrate.
+    objects : Optional[List[fields.FieldObject]], optional
+        List of external objects generating fields. The default is None.
+    coupling : float, optional
+        Coupling constant for system. The default is 1.0.
+    darwin_coupling : Optional[float], optional
+        Darwin lagrangian coupling constant for system. If None, Darwin term is not considered.
+        The default is None.
+
+    Raises
+    ------
+    NonValidIntegratorError
+        Is raised if hamiltonian contains darwin hamiltonian.
+
+    Returns
+    -------
+    None.
+
+    """
+    if darwin_coupling is not None:
+        raise NonValidIntegratorError("Method only valid without magnetostatics")
+    _, dpxy = force_rhs(system, objects, coupling)
+    with torch.no_grad():
+        system.pxy += dpxy*dt
+        system.xy += system.pxy*dt/system.mass
+
+
+def sympletic_verlet_step(dt: float, system: points.MovingPoints,
+                          objects: Optional[List[fields.FieldObject]] = None,
+                          coupling: float = 1.0,
+                          darwin_coupling: Optional[float] = None):
+    """
+
+    Parameters
+    ----------
+    dt : float
+        Step size.
+    system : points.MovingPoints
+        Moving points system to integrate.
+    objects : Optional[List[fields.FieldObject]], optional
+        List of external objects generating fields. The default is None.
+    coupling : float, optional
+        Coupling constant for system. The default is 1.0.
+    darwin_coupling : Optional[float], optional
+        Darwin lagrangian coupling constant for system. If None, Darwin term is not considered.
+        The default is None.
+
+    Raises
+    ------
+    NonValidIntegratorError
+        Is raised if hamiltonian contains darwin hamiltonian.
+
+    Returns
+    -------
+    None.
+
+    """
+
+    if darwin_coupling is not None:
+        raise NonValidIntegratorError("Method only valid without magnetostatics")
+    _, dpxy = force_rhs(system, objects, coupling)
+    with torch.no_grad():
+        system.pxy += 0.5*dpxy*dt
+        system.xy += system.pxy*dt/system.mass
+    _, dpxy = force_rhs(system, objects, coupling)
+    with torch.no_grad():
+        system.pxy += 0.5*dpxy*dt
+
+
+def tao_step(dt: float, system: points.MovingPoints,
+             objects: Optional[List[fields.FieldObject]] = None,
+             coupling: float = 1.0,
+             darwin_coupling: Optional[float] = None,
+             omega: float = 20.0):
+    """
+
+    Parameters
+    ----------
+    dt : float
+        Step size.
+    system : points.MovingPoints
+        Moving points system to integrate.
+    objects : Optional[List[fields.FieldObject]], optional
+        List of external objects generating fields. The default is None.
+    coupling : float, optional
+        Coupling constant for system. The default is 1.0.
+    darwin_coupling : Optional[float], optional
+        Darwin lagrangian coupling constant for system. If None, Darwin term is not considered.
+        The default is None.
+    omega : float, optional
+        Coupling constant for tao integrator. The default is 20.0
+
+    Returns
+    -------
+    None.
+
+    """
+
+    operator_ha(system, objects, coupling, darwin_coupling, dt/2)
+    operator_hb(system, objects, coupling, darwin_coupling, dt/2)
+    operator_whc(system, omega, dt)
+    operator_hb(system, objects, coupling, darwin_coupling, dt/2)
+    operator_ha(system, objects, coupling, darwin_coupling, dt/2)
+
+
+def get_integrator(name):
+    """
+
+    Parameters
+    ----------
+    name : str
+        Name of integrator.
+
+    Raises
+    ------
+    ValueError
+        If integrator name does not corresponds to a function.
+
+    Returns
+    -------
+    Callable
+        Integrator step function.
+
+    """
+    if name == "sympleticverlet":
+        return sympletic_verlet_step
+    elif name == "sympleticeuler":
+        return sympletic_euler_step
+    elif name == "tao20":
+        return functools.partial(tao_step, omega=20.0)
+    elif name == "tao80":
+        return functools.partial(tao_step, omega=80.0)
+    elif name == "tao320":
+        return functools.partial(tao_step, omega=320.0)
+    else:
+        raise ValueError("Integrator not available")
+        
 
 def hamiltonian_gradients(system, objects, coupling, darwin_coupling=None,
                           dummy_q=False, dummy_p=False):
@@ -59,46 +212,3 @@ def operator_whc(system, omega, delta):
         system.xy_dummy.copy_(xnew)
         system.pxy_dummy.copy_(ynew)
     return qnew, pnew, xnew, ynew
-
-
-def sympletic_euler_step(dt, system, objects=None, coupling=1.0, darwin_coupling=None):
-    if darwin_coupling is not None:
-        raise NonValidIntegratorError("Method only valid without magnetostatics")
-    _, dpxy = force_rhs(system, objects, coupling)
-    with torch.no_grad():
-        system.pxy += dpxy*dt
-        system.xy += system.pxy*dt/system.mass
-
-
-def sympletic_verlet_step(dt, system, objects=None, coupling=1.0, darwin_coupling=None):
-    if darwin_coupling is not None:
-        raise NonValidIntegratorError("Method only valid without magnetostatics")
-    _, dpxy = force_rhs(system, objects, coupling)
-    with torch.no_grad():
-        system.pxy += 0.5*dpxy*dt
-        system.xy += system.pxy*dt/system.mass
-    _, dpxy = force_rhs(system, objects, coupling)
-    with torch.no_grad():
-        system.pxy += 0.5*dpxy*dt
-
-def tao_step(dt, system, objects=None, coupling=1.0, darwin_coupling=None,
-             omega=20.0):
-    operator_ha(system, objects, coupling, darwin_coupling, dt/2)
-    operator_hb(system, objects, coupling, darwin_coupling, dt/2)
-    operator_whc(system, omega, dt)
-    operator_hb(system, objects, coupling, darwin_coupling, dt/2)
-    operator_ha(system, objects, coupling, darwin_coupling, dt/2)
-
-def get_integrator(name):
-    if name == "sympleticverlet":
-        return sympletic_verlet_step
-    elif name == "sympleticeuler":
-        return sympletic_euler_step
-    elif name == "tao20":
-        return functools.partial(tao_step, omega=20.0)
-    elif name == "tao80":
-        return functools.partial(tao_step, omega=80.0)
-    elif name == "tao320":
-        return functools.partial(tao_step, omega=320.0)
-    else:
-        raise ValueError("Integrator not available")

@@ -15,7 +15,8 @@ mass = 1.0
 square_density = 10.0
 dt = 0.1
 
-system = fieldbillard.NBodySystem(x, y, mass=mass, charge=charge, coupling=coupling)
+system = fieldbillard.NBodySystem(x, y, mass=mass, charge=charge, coupling=coupling, 
+                                  lx = 2*R, ly=None)
 square = fieldbillard.fields.Square(2*R, charge_density=square_density)
 system.add_field_object(square)
 for i in range(100):

@@ -25,10 +25,12 @@ POINTS_DESIGNS = \
      "5-Circle", "5-Random", "6-Circle", "6-Random",
      "12-Circle", "12-Random", "24-Circle", "24-Random"]
 FRAMES_DESIGNS = \
-    ["Circle", "Hash", "Square"]
+    ["Circle", "Hash", "Square", "Periodic", "XPeriodic", "YPeriodic"]
+FIXED_POINTS_DESIGNS = ["None", "RandomCircle", "RandomSquare"]
 INTEGRATORS = \
     ["SympleticEuler", "SympleticVerlet",
      "Tao20", "Tao80", "Tao320"] 
+
 
 class Visualizer(QMainWindow):
     def __init__(self):
@@ -36,7 +38,7 @@ class Visualizer(QMainWindow):
         self.initializerUI()
         
     def initializerUI(self):
-        self.setGeometry(100, 100, 900, 600)
+        self.setGeometry(100, 100, 1000, 600)
         self.setWindowTitle("Field Billard")
         self.setCentralWidget(CentralWidget(self))
         self.show()
@@ -70,44 +72,56 @@ class FormWidget(QWidget):
         point_title = QLabel("Points:")
         self.point_combobox = QComboBox()
         self.point_combobox.addItems(point_designs)
-        design_hbox.addWidget(point_title)
-        design_hbox.addWidget(self.point_combobox)
-
-        noise_hbox = QHBoxLayout()
         noise_title = QLabel("Noise")
         self.noise_ledit = QLineEdit()
         self.noise_ledit.setText("0.0")
-        noise_hbox.addWidget(noise_title)
-        noise_hbox.addWidget(self.noise_ledit)
-        
+        design_hbox.addWidget(point_title)
+        design_hbox.addWidget(self.point_combobox)
+        design_hbox.addWidget(noise_title)
+        design_hbox.addWidget(self.noise_ledit)
+
         frame_hbox = QHBoxLayout()
         frame_designs = FRAMES_DESIGNS
         frame_title = QLabel("Frame:")
         self.frame_combobox = QComboBox()
         self.frame_combobox.addItems(frame_designs)
+        frame_charge_label = QLabel("Intensity:")
+        self.frame_charge_ledit = QLineEdit()
+        self.frame_charge_ledit.setText("10.0")
         frame_hbox.addWidget(frame_title)
         frame_hbox.addWidget(self.frame_combobox)
+        frame_hbox.addWidget(frame_charge_label)
+        frame_hbox.addWidget(self.frame_charge_ledit)
+        
+        fixed_points_hbox = QHBoxLayout()
+        fixed_points_designs = FIXED_POINTS_DESIGNS
+        fixed_points_name = QLabel("FPoints")
+        self.fixed_points_combobox = QComboBox()
+        self.fixed_points_combobox.addItems(fixed_points_designs)
+        fixed_points_number_name = QLabel("N:")
+        self.fixed_points_number_ledit = QLineEdit()
+        self.fixed_points_number_ledit.setText("3")
+        fixed_points_charge_label = QLabel("Q:")
+        self.fixed_points_charge_ledit = QLineEdit()
+        self.fixed_points_charge_ledit.setText("1.0")
+        fixed_points_hbox.addWidget(fixed_points_name)
+        fixed_points_hbox.addWidget(self.fixed_points_combobox)
+        fixed_points_hbox.addWidget(fixed_points_number_name)
+        fixed_points_hbox.addWidget(self.fixed_points_number_ledit)
+        fixed_points_hbox.addWidget(fixed_points_charge_label)
+        fixed_points_hbox.addWidget(self.fixed_points_charge_ledit)
         
         mass_hbox = QHBoxLayout()
         mass_label = QLabel("Mass:")
         self.mass_ledit = QLineEdit()
         self.mass_ledit.setText("1.0")
-        mass_hbox.addWidget(mass_label)
-        mass_hbox.addWidget(self.mass_ledit)
-
-        charge_hbox = QHBoxLayout()
         charge_label = QLabel("Charge:")
         self.charge_ledit = QLineEdit()
         self.charge_ledit.setText("1.0")
-        charge_hbox.addWidget(charge_label)
-        charge_hbox.addWidget(self.charge_ledit)
-
-        frame_charge_hbox = QHBoxLayout()
-        frame_charge_label = QLabel("Frame charge:")
-        self.frame_charge_ledit = QLineEdit()
-        self.frame_charge_ledit.setText("10.0")
-        frame_charge_hbox.addWidget(frame_charge_label)
-        frame_charge_hbox.addWidget(self.frame_charge_ledit)
+        mass_hbox.addWidget(mass_label)
+        mass_hbox.addWidget(self.mass_ledit)
+        mass_hbox.addWidget(charge_label)
+        mass_hbox.addWidget(self.charge_ledit)
 
         darwin_hbox = QHBoxLayout()
         self.darwin_checkbox = QCheckBox("Darwin")
@@ -124,20 +138,30 @@ class FormWidget(QWidget):
         self.integrator_combobox = QComboBox()
         self.integrator_combobox.addItems(integrator_designs)
         self.integrator_combobox.setCurrentIndex(1)
-        integrator_hbox.addWidget(integrator_title)
-        integrator_hbox.addWidget(self.integrator_combobox)
-        
-        timestep_hbox = QHBoxLayout()
         timestep_title = QLabel("Step")
         self.timestep = QLineEdit()
         self.timestep.setText("0.001")
         render_interval_text = QLabel("Render")
         self.render_ledit = QLineEdit()
         self.render_ledit.setText("10")
-        timestep_hbox.addWidget(timestep_title)
-        timestep_hbox.addWidget(self.timestep)
-        timestep_hbox.addWidget(render_interval_text)
-        timestep_hbox.addWidget(self.render_ledit)
+        integrator_hbox.addWidget(integrator_title)
+        integrator_hbox.addWidget(self.integrator_combobox)
+        integrator_hbox.addWidget(timestep_title)
+        integrator_hbox.addWidget(self.timestep)
+        integrator_hbox.addWidget(render_interval_text)
+        integrator_hbox.addWidget(self.render_ledit)
+        
+        # timestep_hbox = QHBoxLayout()
+        # timestep_title = QLabel("Step")
+        # self.timestep = QLineEdit()
+        # self.timestep.setText("0.001")
+        # render_interval_text = QLabel("Render")
+        # self.render_ledit = QLineEdit()
+        # self.render_ledit.setText("10")
+        # timestep_hbox.addWidget(timestep_title)
+        # timestep_hbox.addWidget(self.timestep)
+        # timestep_hbox.addWidget(render_interval_text)
+        # timestep_hbox.addWidget(self.render_ledit)
         
         memory_hbox = QHBoxLayout()
         self.memory_checkbox = QCheckBox("Memory")
@@ -156,18 +180,20 @@ class FormWidget(QWidget):
         snap_button.clicked.connect(self.snap)
         
         self.layout.addLayout(design_hbox)
-        self.layout.addLayout(noise_hbox)
+        #self.layout.addLayout(noise_hbox)
         self.layout.addLayout(frame_hbox)
+        self.layout.addLayout(fixed_points_hbox)
         self.layout.addLayout(mass_hbox)
-        self.layout.addLayout(charge_hbox)
-        self.layout.addLayout(frame_charge_hbox)
+        #self.layout.addLayout(charge_hbox)
+        #self.layout.addLayout(frame_charge_hbox)
         self.layout.addLayout(darwin_hbox)
         self.layout.addLayout(integrator_hbox)
-        self.layout.addLayout(timestep_hbox)
+        #self.layout.addLayout(timestep_hbox)
         self.layout.addLayout(memory_hbox)
         self.layout.addWidget(create_button)
         self.layout.addWidget(run_button)
         self.layout.addWidget(snap_button)
+        self.layout.addStretch(1)
         self.setLayout(self.layout)
         
         frame_rate = 30 #TODO: put something better        
@@ -180,6 +206,7 @@ class FormWidget(QWidget):
         self.parent.plot.reset_plot()
         point_design = self.point_combobox.currentText()
         frame_design = self.frame_combobox.currentText()
+        fixed_points_design = self.fixed_points_combobox.currentText()
         integrator = self.integrator_combobox.currentText()
         try:
             charge = float(self.charge_ledit.text())
@@ -188,6 +215,8 @@ class FormWidget(QWidget):
             noise = float(self.noise_ledit.text())
             darwin_coupling = None if not self.darwin_checkbox.isChecked()\
                                 else float(self.darwin_ledit.text())
+            fixed_point_number = int(self.fixed_points_number_ledit.text())
+            fixed_point_charge = float(self.fixed_points_charge_ledit.text())
             self.memory_size = int(self.memory_ledit.text())
             self.dt = float(self.timestep.text())
             self.nrender = int(self.render_ledit.text())
@@ -212,12 +241,16 @@ class FormWidget(QWidget):
                                                          charge,
                                                          darwin_coupling)
         visutils.set_system_frame(self.system, frame_design, frame_charge)
+        fixedx, fixedy = visutils.set_fixed_points(self.system, fixed_points_design,
+                                                   fixed_point_number, fixed_point_charge)
         visutils.set_integrator(self.system, integrator)
         if self.has_memory:
             self.memory = visutils.collections.deque([], maxlen=self.memory_size)
             self.memory.append(self.system.points.xy.detach().numpy())
         self.parent.plot.init_scatter(self.system)
-
+        self.draw_objects(frame_design)
+        self.parent.plot.draw_points(fixedx, fixedy)
+        
     def run(self):
         assert hasattr(self, "system")
         self.timer.start()
@@ -266,6 +299,18 @@ class FormWidget(QWidget):
             except:
                 QMessageBox.information(self, "Error", 
                     "Unable to save file.", QMessageBox.Ok)
+    
+    def draw_objects(self, frame_design):
+#"Circle", "Hash", "Square", "Periodic", "XPeriodic", "YPeriodic"
+        if frame_design == "Circle":
+            self.parent.plot.draw_circle()
+        elif frame_design in ["Hash", "Square"]:
+            self.parent.plot.draw_square()
+        elif frame_design in ["XPeriodic"]:
+            self.parent.plot.draw_horizontal_lines()
+        elif frame_design in ["YPeriodic"]:
+            self.parent.plot.draw_vertical_lines()
+
             
 class PlotWidget(FigureCanvasQTAgg):
     def __init__(self, parent=None, width=8, height=8, dpi=100):
@@ -279,7 +324,34 @@ class PlotWidget(FigureCanvasQTAgg):
         self.axes.cla()
         self.axes.set_xlim(-1.0, 1.0)
         self.axes.set_ylim(-1.0, 1.0)
+    
+    def draw_circle(self):
+        theta = np.linspace(0, 2*np.pi, 101)
+        x = np.cos(theta)
+        y = np.sin(theta)
+        self.axes.plot(x, y, color='blue')
+        self.draw()
 
+    def draw_square(self):
+        x = [1.0, -1.0, -1.0, 1.0, 1.0]
+        y = [1.0, 1.0, -1.0, -1.0, 1.0]
+        self.axes.plot(x, y, color='blue')
+        self.draw()
+
+    def draw_vertical_lines(self):
+        self.axes.plot([1.0, 1.0], [-1.0, 1.0], color='blue')
+        self.axes.plot([-1.0, -1.0], [-1.0, 1.0], color='blue')
+        self.draw()
+
+    def draw_horizontal_lines(self):
+        self.axes.plot([-1.0, 1.0], [1.0, 1.0], color='blue')
+        self.axes.plot([-1.0, 1.0], [-1.0, -1.0], color='blue')
+        self.draw()
+        
+    def draw_points(self, x, y):
+        self.axes.scatter(x, y, color='darkblue')
+        self.draw()
+        
     def init_scatter(self, system):
         self.scatter = self.axes.scatter(system.points.x.detach().numpy(),
                                          system.points.y.detach().numpy(),

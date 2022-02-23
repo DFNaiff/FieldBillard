@@ -34,3 +34,21 @@ def upper_mask(N):
 
 def diagonal_mask(N):
     return torch.diag(torch.ones(N) * float('inf'))
+
+
+def wrap_from_center(tensor, lengths, centers):
+    #x -> (x - center) + l;2 -> 
+    #     (x - center + l/2)%l
+    #  -> (x - center + l/2)%l - l/2
+    tensor = tensor.clone()
+    for i, length in enumerate(lengths):
+        if length is None:
+            continue
+        center = centers[i]
+        dislocation = length/2 - center
+        tensor[..., i] = (tensor[..., i] + dislocation)%length - \
+                          dislocation
+    return tensor
+    
+    
+    
