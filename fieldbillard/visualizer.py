@@ -20,10 +20,9 @@ from . import visutils
 
 
 POINTS_DESIGNS = \
-    ["3-Isosceles", "3-Equilateral", "3-Isosceles-B", "3-Random",
-     "4-Cross", "4-Diamond","4-Square", "4-Random",
-     "5-Circle", "5-Random", "6-Circle", "6-Random",
-     "12-Circle", "12-Random", "24-Circle", "24-Random"]
+    ["N-Random-Circle", "N-Random-Square", "N-Equilateral", 
+     "3-Isosceles", "3-Equilateral", "3-Isosceles-B",
+     "4-Cross", "4-Diamond","4-Square"]
 FRAMES_DESIGNS = \
     ["Circle", "Hash", "Square", "Periodic", "XPeriodic", "YPeriodic"]
 FIXED_POINTS_DESIGNS = ["None", "RandomCircle", "RandomSquare"]
@@ -72,11 +71,21 @@ class FormWidget(QWidget):
         point_title = QLabel("Points:")
         self.point_combobox = QComboBox()
         self.point_combobox.addItems(point_designs)
+        radius_title = QLabel("R")
+        self.radius_ledit = QLineEdit()
+        self.radius_ledit.setText("1.0")
+        npoints_title = QLabel("R")
+        self.npoints_ledit = QLineEdit()
+        self.npoints_ledit.setText("4")        
         noise_title = QLabel("Noise")
         self.noise_ledit = QLineEdit()
         self.noise_ledit.setText("0.0")
         design_hbox.addWidget(point_title)
         design_hbox.addWidget(self.point_combobox)
+        design_hbox.addWidget(radius_title)
+        design_hbox.addWidget(self.radius_ledit)
+        design_hbox.addWidget(npoints_title)
+        design_hbox.addWidget(self.npoints_ledit)
         design_hbox.addWidget(noise_title)
         design_hbox.addWidget(self.noise_ledit)
 
@@ -212,6 +221,8 @@ class FormWidget(QWidget):
             charge = float(self.charge_ledit.text())
             frame_charge = float(self.frame_charge_ledit.text())
             mass = float(self.mass_ledit.text())
+            pradius = float(self.radius_ledit.text())
+            npoints = int(self.npoints_ledit.text())
             noise = float(self.noise_ledit.text())
             darwin_coupling = None if not self.darwin_checkbox.isChecked()\
                                 else float(self.darwin_ledit.text())
@@ -239,6 +250,8 @@ class FormWidget(QWidget):
                                                          noise,
                                                          mass,
                                                          charge,
+                                                         pradius,
+                                                         npoints,
                                                          darwin_coupling)
         visutils.set_system_frame(self.system, frame_design, frame_charge)
         fixedx, fixedy = visutils.set_fixed_points(self.system, fixed_points_design,

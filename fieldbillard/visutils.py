@@ -25,7 +25,7 @@ class Memory(object):
             yield item, self.alpha**i
 
         
-def create_system_from_design(design, noise, mass, charge, darwin_coupling):
+def create_system_from_design(design, noise, mass, charge, pradius, npoints, darwin_coupling):
     if design == "4-Diamond":
         x = torch.tensor([0.8, 0.0, -0.8, 0.0])
         y = torch.tensor([0.0, 0.8, 0.0, -0.8])
@@ -44,26 +44,32 @@ def create_system_from_design(design, noise, mass, charge, darwin_coupling):
     elif design == "3-Equilateral":
         x = 0.8*torch.tensor([0.0, math.cos(math.pi/6), -math.cos(math.pi/6)])
         y = 0.8*torch.tensor([1.0, -math.sin(math.pi/6), -math.sin(math.pi/6)])
-    elif design == "3-Random":
-        x, y = _sample_uniform_unit_circle(3, 1.0)
-    elif design == "4-Random":
-        x, y = _sample_uniform_unit_circle(4, 1.0)
-    elif design == "5-Random":
-        x, y = _sample_uniform_unit_circle(5, 1.0)
-    elif design == "5-Circle":
-        x, y = _make_equilateral_designs(0.8, 5)
-    elif design == "6-Random":
-        x, y = _sample_uniform_unit_circle(6, 1.0)
-    elif design == "6-Circle":
-        x, y = _make_equilateral_designs(0.8, 6)
-    elif design == "12-Random":
-        x, y = _sample_uniform_unit_circle(12, 1.0)
-    elif design == "12-Circle":
-        x, y = _make_equilateral_designs(0.8, 12)
-    elif design == "24-Random":
-        x, y = _sample_uniform_unit_circle(24, 1.0)
-    elif design == "24-Circle":
-        x, y = _make_equilateral_designs(0.8, 24)
+    elif design == "N-Random-Circle":
+        x, y = _sample_uniform_unit_circle(npoints, pradius)
+    elif design == "N-Random-Square":
+        x, y = _sample_uniform_unit_square(npoints, pradius)
+    elif design == "N-Equilateral":
+        x, y = _make_equilateral_designs(pradius, npoints)
+    # elif design == "3-Random":
+    #     x, y = _sample_uniform_unit_circle(3, 1.0)
+    # elif design == "4-Random":
+    #     x, y = _sample_uniform_unit_circle(4, 1.0)
+    # elif design == "5-Random":
+    #     x, y = _sample_uniform_unit_circle(5, 1.0)
+    # elif design == "5-Circle":
+    #     x, y = _make_equilateral_designs(0.8, 5)
+    # elif design == "6-Random":
+    #     x, y = _sample_uniform_unit_circle(6, 1.0)
+    # elif design == "6-Circle":
+    #     x, y = _make_equilateral_designs(0.8, 6)
+    # elif design == "12-Random":
+    #     x, y = _sample_uniform_unit_circle(12, 1.0)
+    # elif design == "12-Circle":
+    #     x, y = _make_equilateral_designs(0.8, 12)
+    # elif design == "24-Random":
+    #     x, y = _sample_uniform_unit_circle(24, 1.0)
+    # elif design == "24-Circle":
+    #     x, y = _make_equilateral_designs(0.8, 24)
     x += noise*torch.randn_like(x)
     y += noise*torch.randn_like(y)
     syst = system.NBodySystem(x, y, mass=mass, charge=charge,
@@ -130,6 +136,12 @@ def _sample_uniform_unit_circle(N, rmax=1.0):
     theta = torch.rand(N)*2*math.pi
     x = r*torch.cos(theta)
     y = r*torch.sin(theta)
+    return x, y
+
+
+def _sample_uniform_unit_square(N, rmax=1.0):
+    x = (torch.rand(N)*2 - 1)*rmax
+    y = (torch.rand(N)*2 - 1)*rmax
     return x, y
 
 
