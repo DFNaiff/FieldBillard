@@ -324,7 +324,7 @@ class FormWidget(QWidget):
             #     self.timer.stop()
             #     break
         if self.has_memory:
-            self.memory.append(self.system.points.xy.detach().numpy())
+            self.memory.append(self.system.points.xy.detach().clone().numpy())
         self.parent.plot.update_scatter(self.system, None)
         fartest = torch.max(torch.abs(self.system.points.xy.detach())).item()
         if fartest > 2.0:
