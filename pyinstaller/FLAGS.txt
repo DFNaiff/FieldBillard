@@ -1,0 +1,6 @@
+--noconfirm
+--onedir or --onefile
+--additional-hooks-dir .hook
+
+pyinstaller --noconfirm --onefile --additional-hooks-dir .hook fieldbillardgui.py
+pyinstaller --noconfirm --onedir --additional-hooks-dir .hook fieldbillardgui.py

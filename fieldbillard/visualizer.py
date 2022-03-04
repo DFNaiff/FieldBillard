@@ -315,14 +315,6 @@ class FormWidget(QWidget):
                                      QMessageBox.Close)
                 self.timer.stop()
                 break
-            # except Exception:
-            #     QMessageBox.critical(self, 
-            #                          "Could not run system",
-            #                          "Some error. Let's debug",
-            #                          QMessageBox.Close,
-            #                          QMessageBox.Close)
-            #     self.timer.stop()
-            #     break
         if self.has_memory:
             self.memory.append(self.system.points.xy.detach().clone().numpy())
         self.parent.plot.update_scatter(self.system, None)
