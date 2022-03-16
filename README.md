@@ -1,7 +1,7 @@
 A simulator of 2-D positive charges interacting with each other and 
 a bounding electric field. Can consider either quasi-electrostatic approximation 
 or quasi-electromagnetostatics approximation (through the Darwin Hamiltonian).
-Built on PyTorch mostly.
+Built on top of PyTorch.
 
 
 ## Installing
