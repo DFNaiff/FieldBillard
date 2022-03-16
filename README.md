@@ -3,8 +3,6 @@ a bounding electric field. Can consider either quasi-electrostatic approximation
 or quasi-electromagnetostatics approximation (through the Darwin Hamiltonian).
 Built on PyTorch mostly.
 
-Mostly a toy project done from boredom.
-
 
 ## Installing
 On this folder:
